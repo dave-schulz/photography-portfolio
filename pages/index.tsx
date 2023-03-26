@@ -5,6 +5,13 @@ import Masonry from 'react-masonry-css';
 import classNames from 'classnames';
 import Image from 'next/image';
 
+import 'lightgallery/css/lightgallery.css';
+import 'lightgallery/css/lg-zoom.css';
+import 'lightgallery/css/lg-thumbnail.css';
+
+import lgThumbnail from 'lightgallery/plugins/thumbnail';
+import lgZoom from 'lightgallery/plugins/zoom';
+
 import bgImage from '../public/images/photography-bg.jpg';
 
 import ocean1 from '../public/images/ocean-1.jpeg';
@@ -12,6 +19,9 @@ import ocean2 from '../public/images/ocean-2.jpeg';
 import ocean3 from '../public/images/ocean-3.jpeg';
 import ocean4 from '../public/images/ocean-4.jpeg';
 import ocean5 from '../public/images/ocean-5.jpeg';
+import { useRef } from 'react';
+import LightGalleryComponent from 'lightgallery/react';
+import type { LightGallery } from 'lightgallery/lightgallery';
 
 const tabs = [
   {
@@ -25,9 +35,32 @@ const tabs = [
   },
 ];
 
-const images = [ocean1, ocean2, ocean3, ocean4, ocean5];
+const images = [
+  {
+    src: '/images/ocean-1.jpeg',
+    thumb: '/images/ocean-1.jpeg',
+  },
+  {
+    src: '/images/ocean-2.jpeg',
+    thumb: '/images/ocean-1.jpeg',
+  },
+  {
+    src: '/images/ocean-3.jpeg',
+    thumb: '/images/ocean-3.jpeg',
+  },
+  {
+    src: '/images/ocean-4.jpeg',
+    thumb: '/images/ocean-4.jpeg',
+  },
+  {
+    src: '/images/ocean-5.jpeg',
+    thumb: '/images/ocean-5.jpeg',
+  },
+];
 
 export default function Home() {
+  const lightboxRef = useRef<LightGallery | null>(null);
+
   return (
     <div className="h-full overflow-auto">
       <Head>
@@ -87,13 +120,31 @@ export default function Home() {
                   {images.map((image, index) => (
                     <Image
                       key={image.src}
-                      src={image}
+                      src={image.src}
+                      width={500}
+                      height={500}
                       alt=""
-                      className="my-4"
-                      placeholder="blur"
+                      className="my-4 hover:opacity-70 cursor-pointer"
+                      onClick={() => {
+                        lightboxRef.current?.openGallery(index);
+                      }}
                     />
                   ))}
                 </Masonry>
+                <LightGalleryComponent
+                  onInit={(ref) => {
+                    if (ref) {
+                      lightboxRef.current = ref.instance;
+                    }
+                  }}
+                  speed={500}
+                  plugins={[lgThumbnail, lgZoom]}
+                  dynamic
+                  dynamicEl={images.map((image) => ({
+                    src: image.src,
+                    thumb: image.src,
+                  }))}
+                />
               </Tab.Panel>
             </Tab.Panels>
           </Tab.Group>
