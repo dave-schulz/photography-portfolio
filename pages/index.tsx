@@ -14,14 +14,12 @@ import lgZoom from 'lightgallery/plugins/zoom';
 
 import bgImage from '../public/images/photography-bg.jpg';
 
-import ocean1 from '../public/images/ocean-1.jpeg';
-import ocean2 from '../public/images/ocean-2.jpeg';
-import ocean3 from '../public/images/ocean-3.jpeg';
-import ocean4 from '../public/images/ocean-4.jpeg';
-import ocean5 from '../public/images/ocean-5.jpeg';
 import { useRef } from 'react';
 import LightGalleryComponent from 'lightgallery/react';
 import type { LightGallery } from 'lightgallery/lightgallery';
+import { GetStaticProps } from 'next';
+import { createApi } from 'unsplash-js';
+import * as nodeFetch from 'node-fetch';
 
 const tabs = [
   {
@@ -58,9 +56,74 @@ const images = [
   },
 ];
 
-export default function Home() {
-  const lightboxRef = useRef<LightGallery | null>(null);
+type Photo = {
+  src: string;
+  thumb: string;
+  width: number;
+  height: number;
+  alt: string;
+};
 
+type HomeProps = {
+  oceans: Photo[];
+  forests: Photo[];
+};
+
+export const getStaticProps: GetStaticProps<HomeProps> = async () => {
+  const unsplash = createApi({
+    accessKey: process.env.UNSPLASH_ACCESS_KEY!,
+    fetch: nodeFetch.default as unknown as typeof fetch,
+  });
+
+  const oceans = await unsplash.search.getPhotos({
+    query: 'oceans',
+  });
+
+  const mappedOceans: Photo[] = [];
+
+  if (oceans.type === 'success') {
+    const oceanArr = oceans.response.results.map((photo, index) => ({
+      src: photo.urls.full,
+      thumb: photo.urls.thumb,
+      width: photo.width,
+      height: photo.height,
+      alt: photo.alt_description ?? 'ocean-image' + index,
+    }));
+
+    mappedOceans.push(...oceanArr);
+  } else {
+    console.error("Couldn't find any photos");
+  }
+
+  const forests = await unsplash.search.getPhotos({
+    query: 'forests',
+  });
+
+  const mappedForest: Photo[] = [];
+
+  if (forests.type === 'success') {
+    const forestArr = forests.response.results.map((photo, index) => ({
+      src: photo.urls.full,
+      thumb: photo.urls.thumb,
+      width: photo.width,
+      height: photo.height,
+      alt: photo.alt_description ?? 'forest-image' + index,
+    }));
+
+    mappedForest.push(...forestArr);
+  } else {
+    console.error("Couldn't find any photos");
+  }
+
+  return {
+    props: {
+      oceans: mappedOceans,
+      forests: mappedForest,
+    },
+  };
+};
+
+export default function Home({ oceans, forests }: HomeProps) {
   return (
     <div className="h-full overflow-auto">
       <Head>
@@ -112,39 +175,13 @@ export default function Home() {
             </Tab.List>
             <Tab.Panels className="h-full max-w-[900px] w-full p-2 sm:p-4 my-6">
               <Tab.Panel>
-                <Masonry
-                  breakpointCols={3}
-                  className="flex gap-4"
-                  columnClassName=""
-                >
-                  {images.map((image, index) => (
-                    <Image
-                      key={image.src}
-                      src={image.src}
-                      width={500}
-                      height={500}
-                      alt=""
-                      className="my-4 hover:opacity-70 cursor-pointer"
-                      onClick={() => {
-                        lightboxRef.current?.openGallery(index);
-                      }}
-                    />
-                  ))}
-                </Masonry>
-                <LightGalleryComponent
-                  onInit={(ref) => {
-                    if (ref) {
-                      lightboxRef.current = ref.instance;
-                    }
-                  }}
-                  speed={500}
-                  plugins={[lgThumbnail, lgZoom]}
-                  dynamic
-                  dynamicEl={images.map((image) => ({
-                    src: image.src,
-                    thumb: image.src,
-                  }))}
-                />
+                <Gallery photos={[...oceans, ...forests]} />
+              </Tab.Panel>
+              <Tab.Panel>
+                <Gallery photos={oceans} />
+              </Tab.Panel>
+              <Tab.Panel>
+                <Gallery photos={forests} />
               </Tab.Panel>
             </Tab.Panels>
           </Tab.Group>
@@ -155,5 +192,47 @@ export default function Home() {
         <p>Photography Portfolio</p>
       </footer>
     </div>
+  );
+}
+
+type GalleryProps = {
+  photos: Photo[];
+};
+
+function Gallery({ photos }: GalleryProps) {
+  const lightboxRef = useRef<LightGallery | null>(null);
+
+  return (
+    <>
+      <Masonry breakpointCols={3} className="flex gap-4" columnClassName="">
+        {photos.map((photo, index) => (
+          <Image
+            key={photo.src}
+            src={photo.src}
+            width={photo.width}
+            height={photo.height}
+            alt={photo.alt}
+            className="my-4 hover:opacity-70 cursor-pointer"
+            onClick={() => {
+              lightboxRef.current?.openGallery(index);
+            }}
+          />
+        ))}
+      </Masonry>
+      <LightGalleryComponent
+        onInit={(ref) => {
+          if (ref) {
+            lightboxRef.current = ref.instance;
+          }
+        }}
+        speed={500}
+        plugins={[lgThumbnail, lgZoom]}
+        dynamic
+        dynamicEl={photos.map((photo) => ({
+          src: photo.src,
+          thumb: photo.src,
+        }))}
+      />
+    </>
   );
 }
