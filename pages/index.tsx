@@ -1,4 +1,5 @@
 import { Tab } from '@headlessui/react';
+import { useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -48,10 +49,16 @@ export const getStaticProps: GetStaticProps<HomeProps> = async () => {
       oceans,
       forests,
     },
+    revalidate: 10,
   };
 };
 
 export default function Home({ oceans, forests }: HomeProps) {
+  const allPhotos = useMemo(() => {
+    const allPhotos = [...oceans, ...forests];
+    return allPhotos.sort((a, b) => b.likes - a.likes);
+  }, [oceans, forests]);
+
   return (
     <div className="h-full overflow-auto">
       <Head>
@@ -103,7 +110,7 @@ export default function Home({ oceans, forests }: HomeProps) {
             </Tab.List>
             <Tab.Panels className="h-full max-w-[900px] w-full p-2 sm:p-4 my-6">
               <Tab.Panel>
-                <Gallery photos={[...oceans, ...forests]} />
+                <Gallery photos={allPhotos} />
               </Tab.Panel>
               <Tab.Panel>
                 <Gallery photos={oceans} />

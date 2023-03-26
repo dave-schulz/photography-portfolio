@@ -4,4 +4,5 @@ export type Photo = {
   width: number;
   height: number;
   alt: string;
+  likes: number;
 };
